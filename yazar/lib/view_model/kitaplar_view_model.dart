@@ -1,15 +1,14 @@
-//import 'dart:js_util';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:yazar/model/kitap.dart';
-import 'package:yazar/sabitler.dart';
+import 'package:yazar/repository/database_repository.dart';
+import 'package:yazar/tools/locator.dart';
+import 'package:yazar/tools/sabitler.dart';
 import 'package:yazar/view/bolumler_sayfasi.dart';
 import 'package:yazar/view_model/bolumler_view_model.dart';
-import 'package:yazar/yerel_veri_tabani.dart';
 
 class KitaplarViewModel with ChangeNotifier {
-  YerelVeriTabani _yerelVeriTabani = YerelVeriTabani();
+  DatabaseRepository _databaseRepository = locator<DatabaseRepository>();
 
   ScrollController _scrollController = ScrollController();
 
@@ -53,7 +52,7 @@ class KitaplarViewModel with ChangeNotifier {
       int kategori = sonuc[1];
 
       Kitap yeniKitap = Kitap(kitapAdi, DateTime.now(), kategori);
-      int kitapIdsi = await _yerelVeriTabani.createKitap(yeniKitap);
+      int kitapIdsi = await _databaseRepository.createKitap(yeniKitap);
       yeniKitap.id = kitapIdsi;
       print("Kitap Idsi: $kitapIdsi");
       _kitaplar.add(yeniKitap);
@@ -63,6 +62,7 @@ class KitaplarViewModel with ChangeNotifier {
 
   void kitapGuncelle(BuildContext context, int index) async {
     Kitap kitap = _kitaplar[index];
+
     List<dynamic>? sonuc = await _pencereAc(
       context,
       mevcutIsim: kitap.isim,
@@ -76,7 +76,7 @@ class KitaplarViewModel with ChangeNotifier {
       if (kitap.isim != yeniKitapAdi || kitap.kategori != yeniKategori) {
         kitap.guncelle(yeniKitapAdi, yeniKategori);
 
-        int guncellenenSatirSayisi = await _yerelVeriTabani.updateKitap(kitap);
+        int guncellenenSatirSayisi = await _databaseRepository.updateKitap(kitap);
         if (guncellenenSatirSayisi > 0) {}
       }
     }
@@ -84,7 +84,7 @@ class KitaplarViewModel with ChangeNotifier {
 
   void kitapSil(int index) async {
     Kitap kitap = _kitaplar[index];
-    int silinenSatirSayisi = await _yerelVeriTabani.deleteKitap(kitap);
+    int silinenSatirSayisi = await _databaseRepository.deleteKitap(kitap);
     if (silinenSatirSayisi > 0) {
       _kitaplar.removeAt(index);
       notifyListeners();
@@ -92,7 +92,7 @@ class KitaplarViewModel with ChangeNotifier {
   }
 
   void seciliKitaplariSil() async {
-    int silinenSatirSayisi = await _yerelVeriTabani.deleteKitaplar(
+    int silinenSatirSayisi = await _databaseRepository.deleteKitaplar(
       _secilenKitapIdleri,
     );
     if (silinenSatirSayisi > 0) {
@@ -103,20 +103,28 @@ class KitaplarViewModel with ChangeNotifier {
 
   Future<void> _ilkKitaplariGetir() async {
     if (_kitaplar.isEmpty) {
-      _kitaplar = await _yerelVeriTabani.readTumKitaplar(_secilenKategori, 0);
+      _kitaplar = await _databaseRepository.readTumKitaplar(_secilenKategori, 0);
+      print("İlk kitaplar");
+      for (Kitap k in _kitaplar) {
+        print("${k.isim}, ");
+      }
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> _sonrakiKitaplariGetir() async {
     int? sonKitapId = _kitaplar.last.id;
 
     if (sonKitapId != null) {
-      List<Kitap> sonrakiKitaplar = await _yerelVeriTabani.readTumKitaplar(
+      List<Kitap> sonrakiKitaplar = await _databaseRepository.readTumKitaplar(
         _secilenKategori,
         sonKitapId,
       );
       _kitaplar.addAll(sonrakiKitaplar);
+      print("Sonraki kitaplar");
+      for (Kitap k in _kitaplar) {
+        print("${k.isim}, ");
+      }
       notifyListeners();
     }
   }
@@ -129,6 +137,7 @@ class KitaplarViewModel with ChangeNotifier {
     TextEditingController isimController = TextEditingController(
       text: mevcutIsim,
     );
+
     return showDialog<List<dynamic>>(
       context: context,
       builder: (context) {

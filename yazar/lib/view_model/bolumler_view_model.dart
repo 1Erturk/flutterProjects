@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:yazar/model/bolum.dart';
 import 'package:yazar/model/kitap.dart';
+import 'package:yazar/repository/database_repository.dart';
+import 'package:yazar/tools/locator.dart';
 import 'package:yazar/view/bolum_detay_sayfasi.dart';
-import 'package:yazar/view_model/bolumler_detay_view_model.dart';
-import 'package:yazar/yerel_veri_tabani.dart';
+import 'package:yazar/view_model/bolum_detay_view_model.dart';
 
 class BolumlerViewModel with ChangeNotifier {
-  YerelVeriTabani _yerelVeriTabani = YerelVeriTabani();
+  DatabaseRepository _databaseRepository = locator<DatabaseRepository>();
 
   List<Bolum> _bolumler = [];
 
@@ -27,9 +28,9 @@ class BolumlerViewModel with ChangeNotifier {
     String? bolumBasligi = await _pencereAc(context);
     int? kitapId = _kitap.id;
 
-    if(bolumBasligi != null && kitapId != null) {
+    if (bolumBasligi != null && kitapId != null) {
       Bolum yeniBolum = Bolum(kitapId, bolumBasligi);
-      int bolumIdsi = await _yerelVeriTabani.createBolum(yeniBolum);
+      int bolumIdsi = await _databaseRepository.createBolum(yeniBolum);
       yeniBolum.id = bolumIdsi;
       print("Bolum Idsi: $bolumIdsi");
       _bolumler.add(yeniBolum);
@@ -40,18 +41,18 @@ class BolumlerViewModel with ChangeNotifier {
   void bolumGuncelle(BuildContext context, int index) async {
     String? yeniBolumBasligi = await _pencereAc(context);
 
-    if(yeniBolumBasligi != null) {
+    if (yeniBolumBasligi != null) {
       Bolum bolum = _bolumler[index];
       bolum.guncelle(yeniBolumBasligi);
-      int guncellenenSatirSayisi = await _yerelVeriTabani.updateBolum(bolum);
-      if(guncellenenSatirSayisi > 0) {}
+      int guncellenenSatirSayisi = await _databaseRepository.updateBolum(bolum);
+      if (guncellenenSatirSayisi > 0) {}
     }
   }
 
   void bolumSil(int index) async {
     Bolum bolum = _bolumler[index];
-    int silinenSatirSayisi = await _yerelVeriTabani.deleteBolum(bolum);
-    if(silinenSatirSayisi > 0) {
+    int silinenSatirSayisi = await _databaseRepository.deleteBolum(bolum);
+    if (silinenSatirSayisi > 0) {
       _bolumler.removeAt(index);
       notifyListeners();
     }
@@ -60,8 +61,8 @@ class BolumlerViewModel with ChangeNotifier {
   Future<void> _tumBolumleriGetir() async {
     int? kitapId = _kitap.id;
 
-    if(kitapId != null) {
-      _bolumler = await _yerelVeriTabani.readTumBolumler(kitapId);
+    if (kitapId != null) {
+      _bolumler = await _databaseRepository.readTumBolumler(kitapId);
       notifyListeners();
     }
   }
